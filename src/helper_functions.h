@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <random>
 #include "map.h"
 
 // for portability of M_PI (Vis Studio, MinGW, etc.)
@@ -56,6 +57,34 @@ struct LandmarkObs {
  */
 inline double dist(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
+/**
+ */
+template <typename T>
+inline T multivariate_gaussian_2D(const T& x, const T& y, const T& mean_x, const T& mean_y, const T& stddev_x, const T& stddev_y) 
+{
+	return (1.0 / (2 * M_PI * stddev_x * stddev_y)) *
+			(exp(-1 * (
+				  (pow(x - mean_x, 2) / (2 * stddev_x * stddev_x)) +
+				  (pow(y - mean_y, 2) / (2 * stddev_y * stddev_y))
+								 )
+			          )
+			 );
+}
+
+/**
+ */
+
+template <typename T>
+void homogenousTransformation(T& ref_x, T& ref_y, T& theta, T& x, T&  y)
+{
+
+  auto x_t = ref_x + (std::cos(theta) * x) - (std::sin(theta) * y);
+  auto y_t = ref_y + (std::sin(theta) * x) - (std::cos(theta) * y);
+
+  x = x_t;
+  y = y_t;
 }
 
 /**
@@ -247,5 +276,22 @@ inline bool read_landmark_data(std::string filename,
   }
   return true;
 }
+
+
+template <class T>
+class GaussianNoise
+{
+  public:
+    T getSample() { return distribution(engine); };
+    GaussianNoise(T mean,T stddev) : mean_ (mean), stddev_ (stddev) {};
+
+  private:
+
+    T mean_;
+    T stddev_;
+
+    std::default_random_engine engine;
+    std::normal_distribution<T> distribution;
+};
 
 #endif  // HELPER_FUNCTIONS_H_
