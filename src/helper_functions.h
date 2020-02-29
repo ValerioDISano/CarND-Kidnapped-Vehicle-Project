@@ -16,6 +16,7 @@
 #include <vector>
 #include <random>
 #include "map.h"
+#include <iostream>
 
 // for portability of M_PI (Vis Studio, MinGW, etc.)
 #ifndef M_PI
@@ -62,12 +63,12 @@ inline double dist(double x1, double y1, double x2, double y2) {
 /**
  */
 template <typename T>
-inline T multivariate_gaussian_2D(const T& x, const T& y, const T& mean_x, const T& mean_y, const T& stddev_x, const T& stddev_y) 
+inline T multivariate_gaussian_2D(const T& x, const T& y, const T& mean_x, const T& mean_y, const T& stddev_x, const T& stddev_y)
 {
-	return (1.0 / (2 * M_PI * stddev_x * stddev_y)) *
-			(exp(-1 * (
-				  (pow(x - mean_x, 2) / (2 * stddev_x * stddev_x)) +
-				  (pow(y - mean_y, 2) / (2 * stddev_y * stddev_y))
+	return (1.0 / (2.0 * M_PI * stddev_x * stddev_y)) *
+			(exp(-1.0 * (
+				  (pow(x - mean_x, 2) / (2.0 * stddev_x)) +
+				  (pow(y - mean_y, 2) / (2.0 * stddev_y))
 								 )
 			          )
 			 );
@@ -81,7 +82,7 @@ void homogenousTransformation(T& ref_x, T& ref_y, T& theta, T& x, T&  y)
 {
 
   auto x_t = ref_x + (std::cos(theta) * x) - (std::sin(theta) * y);
-  auto y_t = ref_y + (std::sin(theta) * x) - (std::cos(theta) * y);
+  auto y_t = ref_y + (std::sin(theta) * x) + (std::cos(theta) * y);
 
   x = x_t;
   y = y_t;
@@ -283,15 +284,21 @@ class GaussianNoise
 {
   public:
     T getSample() { return distribution(engine); };
-    GaussianNoise(T mean,T stddev) : mean_ (mean), stddev_ (stddev) {};
+    GaussianNoise(T mean,T stddev) : mean_ (mean), stddev_ (stddev)
+    {
+      distribution = std::normal_distribution<T>(mean_, stddev_);
+    };
 
   private:
 
     T mean_;
     T stddev_;
 
-    std::default_random_engine engine;
+    static std::default_random_engine engine;
     std::normal_distribution<T> distribution;
 };
+
+template <class T>
+std::default_random_engine GaussianNoise<T>::engine;
 
 #endif  // HELPER_FUNCTIONS_H_
