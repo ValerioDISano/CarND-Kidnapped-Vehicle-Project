@@ -93,8 +93,9 @@ class ParticleFilter {
    * @param predicted Vector of predicted landmark observations
    * @param observations Vector of landmark observations
    */
-  void dataAssociation(const Map& map, LandmarkObs& observation, const double& sensor_range);
-
+  int dataAssociation(LandmarkObs& observation,
+                      const Map& map_landmarks,
+                      const double& sensor_range);
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
    *   of the observed measurements. 
