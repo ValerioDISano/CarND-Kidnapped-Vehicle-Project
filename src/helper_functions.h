@@ -44,7 +44,7 @@ struct ground_truth {
  * Struct representing one landmark observation measurement.
  */
 struct LandmarkObs {
-  
+
   int id;     // Id of matching landmark in the map.
   double x;   // Local (vehicle coords) x position of landmark observation [m]
   double y;   // Local (vehicle coords) y position of landmark observation [m]
@@ -277,28 +277,5 @@ inline bool read_landmark_data(std::string filename,
   }
   return true;
 }
-
-
-template <class T>
-class GaussianNoise
-{
-  public:
-    T getSample() { return distribution(engine); };
-    GaussianNoise(T mean,T stddev) : mean_ (mean), stddev_ (stddev)
-    {
-      distribution = std::normal_distribution<T>(mean_, stddev_);
-    };
-
-  private:
-
-    T mean_;
-    T stddev_;
-
-    static std::default_random_engine engine;
-    std::normal_distribution<T> distribution;
-};
-
-template <class T>
-std::default_random_engine GaussianNoise<T>::engine;
 
 #endif  // HELPER_FUNCTIONS_H_

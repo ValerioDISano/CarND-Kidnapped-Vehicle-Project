@@ -35,11 +35,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     return;
   }
 
-  num_particles = 30;  // TODO: Set the number of particles
+  num_particles = 100;  // TODO: Set the number of particles
 
   this->particles = std::move(std::vector<Particle>(num_particles));
-
-  //auto add_noise = [&std](auto x, const auto& idx){return x + GaussianNoise<decltype(x)>(x, std[idx]).getSample(); };
   this->weights = std::move(std::vector<double>(this->num_particles));
 
   int counter = 0;
@@ -52,11 +50,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   {
 
     particle.id = counter;
-    //particle.weight = 1.0;
     this->weights[counter] = 1.0;
-    //particle.x = add_noise(x, 0);
-    //particle.y = add_noise(y, 1);
-    //particle.theta = add_noise(theta, 2);
 
     particle.x = x + dist_x(gen);
     particle.y = y + dist_y(gen);
@@ -101,10 +95,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     }
     particle.theta += delta_theta;
     // Add noise
-    //auto add_noise = [&std_pos](const auto& x, const auto& idx){return x + GaussianNoise<double>(x, std_pos[idx]).getSample(); };
-    //particle.x = add_noise(particle.x, 0);
-    //particle.y = add_noise(particle.y, 1);
-    //particle.theta = add_noise(particle.theta, 2);
     particle.x += dist_x(gen);
     particle.y += dist_y(gen);
     particle.theta += dist_theta(gen);
@@ -132,7 +122,6 @@ int ParticleFilter::dataAssociation(LandmarkObs& observation,
     auto landmark_x = landmark.x_f;
     auto landmark_y = landmark.y_f;
 
-    //double dist = pow(obs.x - landmark_x, 2.0) + pow(obs.y - landmark_y, 2.0);
     double distance = dist(observation.x, observation.y, landmark_x, landmark_y);
     if (distance < min_dist)
     {
@@ -164,15 +153,13 @@ void ParticleFilter::updateWeights(const double& sensor_range,const double std_l
   unsigned int counter = 0;
   for (auto &particle : this->particles)
   {
-        std::vector<int> associations;
-        std::vector<double> sense_x;
-        std::vector<double> sense_y;
+        auto associations = std::make_unique<std::vector<int>>();
+        auto sense_x = std::make_unique<std::vector<double>>();
+        auto sense_y = std::make_unique<std::vector<double>>();
 
         auto t_observations = observations;
 
         particle.weight = 1.0; // reset weight
-
-        double closest = sensor_range*sensor_range;
 
         for (auto& observation : t_observations)
         {
@@ -182,25 +169,25 @@ void ParticleFilter::updateWeights(const double& sensor_range,const double std_l
             auto x = observation.x;
             auto y = observation.y;
 
-            auto mu_x = map_landmarks.landmark_list[min_index].x_f;
-            auto mu_y = map_landmarks.landmark_list[min_index].y_f;
+            auto mean_x = double (map_landmarks.landmark_list[min_index].x_f);
+            auto mean_y = double (map_landmarks.landmark_list[min_index].y_f);
 
             auto std_x = std_landmark[0];
             auto std_y = std_landmark[1];
 
-            auto multiplier = 1/(2*M_PI*std_x*std_y)*exp(-0.5*(pow((x-mu_x)/std_x, 2) + pow((y-mu_y)/std_y, 2)));
+            auto multiplier = multivariate_gaussian_2D<double>(x, y, mean_x, mean_y, std_x, std_y);
 
             if (multiplier > 0.0)
                 particle.weight *= multiplier;
 
-            associations.push_back(min_index+1);
-            sense_x.push_back(x);
-            sense_y.push_back(y);
+            associations->push_back(min_index+1);
+            sense_x->push_back(x);
+            sense_y->push_back(y);
 
         }
 
         this->weights[counter] = particle.weight;
-        SetAssociations(particle, associations, sense_x, sense_y);
+        SetAssociations(particle, *std::move(associations), *std::move(sense_x), *std::move(sense_y));
         counter++;
     }
 
@@ -208,27 +195,24 @@ void ParticleFilter::updateWeights(const double& sensor_range,const double std_l
 
 void ParticleFilter::resample() {
   /**
-   * TODO: Resample particles with replacement with probability proportional 
+   * TODO: Resample particles with replacement with probability proportional
    *   to their weight.
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
 
-  std::vector<Particle> new_particles;
-  new_particles.resize(this->particles.size());
+  auto new_particles = std::make_unique<decltype(this->particles)>(this->particles.size());
 
   std::default_random_engine generator;
-  //std::random_device rd;
-  //std::mt19937 generator(rd());
   std::discrete_distribution<int> sampling_distribution (this->weights.begin(), this->weights.end());
 
   for (auto i = 0; i < this->particles.size(); i++)
   {
     auto number = sampling_distribution(generator);
-    new_particles[i] = this->particles[number];
+    (*new_particles)[i] = this->particles[number];
   }
 
-  this->particles = new_particles;
+  this->particles = std::move(*new_particles);
 }
 
 void ParticleFilter::SetAssociations(Particle& particle,

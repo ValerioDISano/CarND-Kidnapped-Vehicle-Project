@@ -37,6 +37,10 @@ struct Particle {
 
   Particle& operator=(const Particle& other)
   {
+
+    if (&other == this)
+      return *this;
+
     this->id = other.id;
     this->x = other.x;
     this->y = other.y;
@@ -86,7 +90,7 @@ class ParticleFilter {
    */
   void prediction(double delta_t, double std_pos[], double velocity, 
                   double yaw_rate);
-  
+
   /**
    * dataAssociation Finds which observations correspond to which landmarks 
    *   (likely by using a nearest-neighbors data association).
